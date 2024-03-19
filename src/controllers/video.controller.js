@@ -5,14 +5,46 @@ import { ApiError } from "../utils/ApiError.js"
 import ApiResponse from '../utils/ApiResponse.js';
 import { asyncHandler } from "../utils/asyncHandler.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
-
+import { secondsToMMSS } from "../utils/secondToHHmmss.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
     //TODO: get all videos based on query, sort, pagination
 
-    let video = await Video.find({})
-    
+    let video = await Video.aggregate([
+        {
+          $lookup:
+            {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "ownerData",
+            },
+        },
+        {
+          $addFields: {
+            ownerUserName: {
+              $arrayElemAt: ["$ownerData.username", 0],
+            },
+            ownerName: {
+              $arrayElemAt: ["$ownerData.fullName", 0],
+            },
+            ownerAvatar: {
+              $arrayElemAt: ["$ownerData.avatar", 0],
+            },
+          },
+        },
+        {
+          $project: {
+            ownerData: 0,
+          },
+        },
+      ])
+    video = video.map(res=> {
+       return {  ...res,
+                duration: secondsToMMSS(res.duration)        }
+    })
+    console.log(video)
     return res.status(200)
     .json(new ApiResponse(200,{data:video},""))
 
