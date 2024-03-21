@@ -40,11 +40,12 @@ const getAllVideos = asyncHandler(async (req, res) => {
           },
         },
       ])
+
     video = video.map(res=> {
        return {  ...res,
                 duration: secondsToMMSS(res.duration)        }
     })
-    console.log(video)
+
     return res.status(200)
     .json(new ApiResponse(200,{data:video},""))
 
@@ -99,7 +100,36 @@ const getVideoById = asyncHandler(async (req, res) => {
     //TODO: get video by id
     // console.log(video)
 
-    const video = await Video.findById(videoId)
+    const video = await Video.aggregate([
+      {
+        $match:
+          {
+            _id: new mongoose.Types.ObjectId(videoId),
+          },
+      },
+      {
+        $lookup:
+          {
+            from: "users",
+            localField: "owner",
+            foreignField: "_id",
+            as: "userData",
+            pipeline: [
+              {
+                $project: {
+                  password: 0,
+                },
+              },
+            ],
+          },
+      },
+      {
+        $project:
+          {
+            owner: 0,
+          },
+      },
+    ])
     
     if (!video) {
         return res
@@ -108,7 +138,7 @@ const getVideoById = asyncHandler(async (req, res) => {
     }
 
     return res.status(200).
-        json(new ApiResponse(200, video, "Success"))
+        json(new ApiResponse(200, {data: video[0]}, "Success"))
 
 })
 
@@ -141,7 +171,26 @@ const getVideoByChannel = asyncHandler(async (req, res) => {
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: update video details like title, description, thumbnail
+    const video = await Video.findByIdAndUpdate(videoId,
+        {
+          $set: {
+            title,
+            description
+          }
+        },
+        { new: true }
+      )
 
+      
+
+    if (!video) {
+        return res
+        .status(200).
+        json(new ApiResponse(400, "", "Video Not Found"))
+    }
+
+    return res.status(200).
+        json(new ApiResponse(200, video, "Data Updated Successfully"))
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {

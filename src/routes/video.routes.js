@@ -29,6 +29,7 @@ router.route("/postVideo").post(upload.fields([{
     publishAVideo
 );
 router.route("/video/:username").get(getVideoByChannel)
+
 router
     .route("/:videoId")
     .get(getVideoById)
