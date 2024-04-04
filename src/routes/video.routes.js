@@ -32,9 +32,9 @@ router.route("/video/:username").get(getVideoByChannel)
 
 router
     .route("/:videoId")
-    .get(getVideoById)
     .delete(deleteVideo)
     .patch(upload.single("thumbnail"), updateVideo);
+router.route("/getVideoById").get(getVideoById)    
 
 router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
 

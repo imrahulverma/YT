@@ -96,7 +96,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
+    const { videoId } = req.query
     //TODO: get video by id
     // console.log(video)
 
@@ -116,8 +116,43 @@ const getVideoById = asyncHandler(async (req, res) => {
             as: "userData",
             pipeline: [
               {
+                $lookup: {
+                  from: "subscriptions",
+                  localField: "_id",
+                  foreignField: "channel",
+                  as: "subscribers"
+                }
+              },
+              {
+                $lookup: {
+                  from: "subscriptions",
+                  localField: "_id",
+                  foreignField: "subscriber",
+                  as: "subscribedTo"
+                }
+              },
+              {
+                $addFields: {
+                  subscribersCount: {
+                    $size: "$subscribers"
+                  },
+                  channelsSubscribedToCount: {
+                    $size: "$subscribedTo"
+                  },
+                  isSubscribed: {
+                    $cond: {
+                      if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                      then: true,
+                      else: false
+                    }
+                  }
+                }
+              },
+              {
                 $project: {
                   password: 0,
+                  subscribedTo: 0,
+                  subscribers:0
                 },
               },
             ],
