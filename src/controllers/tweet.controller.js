@@ -35,8 +35,38 @@ const getUserTweets = asyncHandler(async (req, res) => {
             json(new ApiResponse(400, {}, "Id not found"));
     }
 
-    const tweets = await Tweet.find({ owner: new mongoose.Types.ObjectId(channelId) })
-        .sort('-createdAt')
+    const tweets = await Tweet.aggregate(
+        [
+            {
+              $match:
+                {
+                  owner: new mongoose.Types.ObjectId(channelId)
+                },
+            },
+            {
+              $lookup:
+                {
+                  from: "likes",
+                  localField: "_id",
+                  foreignField: "tweet",
+                  as: "likes",
+                },
+            },
+            {
+              $addFields:
+                {
+                  likesCount: {
+                    $size: "$likes",
+                  },
+                },
+            },
+            {
+              $project:
+                {
+                  likes: 0,
+                },
+            },
+          ]).sort('-createdAt')
 
     return res.status(201).
         json(new ApiResponse(201, { data: tweets }, "tweet fetched Successfully"));

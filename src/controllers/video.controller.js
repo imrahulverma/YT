@@ -97,8 +97,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.query
-    //TODO: get video by id
-    // console.log(video)
 
     const video = await Video.aggregate([
       {
@@ -157,13 +155,30 @@ const getVideoById = asyncHandler(async (req, res) => {
               },
             ],
           },
-      },
+         
+      }
+      ,{
+        $lookup: {
+            
+          from: "likes",
+          localField: "_id",
+          foreignField: "video",
+          as: "likes",
+        
+      }
+      },{
+      $addFields: {
+        likesCount: {
+          $size: "$likes"
+        }
+      }},
       {
         $project:
           {
             owner: 0,
+            likes: 0
           },
-      },
+      }
     ])
     
     if (!video) {
